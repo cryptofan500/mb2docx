@@ -222,3 +222,59 @@ Some text.
     sections = [b for b in blocks if isinstance(b, SectionHeadingBlock)]
     assert len(sections) == 1
     assert "PROFESSIONAL EXPERIENCE" in sections[0].text
+
+
+# V9.3.0 audit fixes — cover-letter heading bugs (C1 + C2)
+
+def test_cover_letter_markdown_heading_all_caps():
+    """`# JANE DOE` at top of cover letter must produce HeadingBlock with no leading '#'."""
+    text = """# JANE DOE
+email@test.com | (555) 123-4567
+
+January 1, 2026
+
+Dear Hiring Manager,
+
+Body.
+"""
+    blocks = parse_markdown_like(text, is_cover_letter=True)
+    headings = [b for b in blocks if isinstance(b, HeadingBlock)]
+    assert len(headings) == 1
+    assert headings[0].level == 1
+    assert headings[0].text == "JANE DOE"
+
+
+def test_cover_letter_markdown_heading_title_case():
+    """`# Jane Doe` (Title Case) must also be detected as the name."""
+    text = """# Jane Doe
+email@test.com | (555) 123-4567
+
+January 1, 2026
+
+Dear Hiring Manager,
+
+Body.
+"""
+    blocks = parse_markdown_like(text, is_cover_letter=True)
+    headings = [b for b in blocks if isinstance(b, HeadingBlock)]
+    assert len(headings) == 1
+    assert headings[0].level == 1
+    assert headings[0].text == "Jane Doe"
+
+
+def test_cover_letter_plain_name_still_works():
+    """Plain `JANE DOE` (no '#') must continue to work as before."""
+    text = """JANE DOE
+email@test.com | (555) 123-4567
+
+January 1, 2026
+
+Dear Hiring Manager,
+
+Body.
+"""
+    blocks = parse_markdown_like(text, is_cover_letter=True)
+    headings = [b for b in blocks if isinstance(b, HeadingBlock)]
+    assert len(headings) == 1
+    assert headings[0].level == 1
+    assert headings[0].text == "JANE DOE"

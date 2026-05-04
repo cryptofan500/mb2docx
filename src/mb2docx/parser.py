@@ -491,9 +491,16 @@ def _parse_cover_letter(text: str) -> List[Block]:
         # ===== V9.1 FIX: NAME DETECTION =====
         # First non-empty line before date should be the name
         if not seen_name and not seen_date:
-            if _looks_like_name(line):
+            # V9.3.0 FIX: Strip leading markdown heading marker (e.g., "# Jane Doe")
+            # so both "# JANE DOE" and "# Jane Doe" are recognised as the name.
+            heading_match = _HEADING_RE.match(line)
+            if heading_match and len(heading_match.group(1)) == 1:
+                candidate = heading_match.group(2).strip()
+            else:
+                candidate = line
+            if _looks_like_name(candidate):
                 flush()
-                blocks.append(HeadingBlock(type="heading", level=1, text=line))
+                blocks.append(HeadingBlock(type="heading", level=1, text=candidate))
                 seen_name = True
                 i += 1
                 continue
