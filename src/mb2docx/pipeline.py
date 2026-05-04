@@ -3,10 +3,9 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import List, Optional
 
 from .clean import clean_ai_paste
-from .config import CV_STYLE, CL_STYLE, DocxStyleConfig, OutputConfig
+from .config import CL_STYLE, CV_STYLE, DocxStyleConfig, OutputConfig
 from .docx_writer import add_page_break, build_docx, new_document, render_blocks, safe_save_docx
 from .parser import parse_markdown_like
 
@@ -16,14 +15,14 @@ log = logging.getLogger(__name__)
 def generate_documents(
     *,
     cv_text: str,
-    cl_text: Optional[str],
+    cl_text: str | None,
     output: OutputConfig,
-    cv_style: Optional[DocxStyleConfig] = None,
-    cl_style: Optional[DocxStyleConfig] = None,
-    style: Optional[DocxStyleConfig] = None,  # Legacy support
+    cv_style: DocxStyleConfig | None = None,
+    cl_style: DocxStyleConfig | None = None,
+    style: DocxStyleConfig | None = None,  # Legacy support
     also_generate_combined: bool = False,
     only_combined: bool = False,
-) -> List[Path]:
+) -> list[Path]:
     """Generate DOCX files from CV and optional CL text.
 
     Args:
@@ -39,7 +38,7 @@ def generate_documents(
     Returns:
         List of generated file paths
     """
-    outputs: List[Path] = []
+    outputs: list[Path] = []
 
     # Resolve styles
     if style:

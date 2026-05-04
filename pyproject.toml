@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mb2docx"
-version = "9.2.0"
+version = "9.3.0"
 description = "Convert AI markdown-box CV/CL text into ATS-friendly .docx (Windows 10+ local GUI + CLI)."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -29,6 +29,9 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+# gui.py is intentionally out of scope for the V9.3.0 lint pass; revisit
+# when the GUI module is next touched.
+extend-exclude = ["src/mb2docx/gui.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]

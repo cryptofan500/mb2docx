@@ -1,5 +1,4 @@
 """Tests for parser.py."""
-from mb2docx.parser import parse_markdown_like
 from mb2docx.model import (
     AddressBlock,
     ClosingBlock,
@@ -9,10 +8,10 @@ from mb2docx.model import (
     InstitutionBlock,
     JobEntryBlock,
     ListBlock,
-    ParagraphBlock,
     SalutationBlock,
     SectionHeadingBlock,
 )
+from mb2docx.parser import parse_markdown_like
 
 
 def test_parser_name_heading():
@@ -222,3 +221,124 @@ Some text.
     sections = [b for b in blocks if isinstance(b, SectionHeadingBlock)]
     assert len(sections) == 1
     assert "PROFESSIONAL EXPERIENCE" in sections[0].text
+
+
+# V9.3.0 audit fixes — cover-letter heading bugs (C1 + C2)
+
+def test_cover_letter_markdown_heading_all_caps():
+    """`# JANE DOE` at top of cover letter must produce HeadingBlock with no leading '#'."""
+    text = """# JANE DOE
+email@test.com | (555) 123-4567
+
+January 1, 2026
+
+Dear Hiring Manager,
+
+Body.
+"""
+    blocks = parse_markdown_like(text, is_cover_letter=True)
+    headings = [b for b in blocks if isinstance(b, HeadingBlock)]
+    assert len(headings) == 1
+    assert headings[0].level == 1
+    assert headings[0].text == "JANE DOE"
+
+
+def test_cover_letter_markdown_heading_title_case():
+    """`# Jane Doe` (Title Case) must also be detected as the name."""
+    text = """# Jane Doe
+email@test.com | (555) 123-4567
+
+January 1, 2026
+
+Dear Hiring Manager,
+
+Body.
+"""
+    blocks = parse_markdown_like(text, is_cover_letter=True)
+    headings = [b for b in blocks if isinstance(b, HeadingBlock)]
+    assert len(headings) == 1
+    assert headings[0].level == 1
+    assert headings[0].text == "Jane Doe"
+
+
+def test_cover_letter_plain_name_still_works():
+    """Plain `JANE DOE` (no '#') must continue to work as before."""
+    text = """JANE DOE
+email@test.com | (555) 123-4567
+
+January 1, 2026
+
+Dear Hiring Manager,
+
+Body.
+"""
+    blocks = parse_markdown_like(text, is_cover_letter=True)
+    headings = [b for b in blocks if isinstance(b, HeadingBlock)]
+    assert len(headings) == 1
+    assert headings[0].level == 1
+    assert headings[0].text == "JANE DOE"
+
+
+# V9.3.0 audit fixes — phone/email duplication (H1)
+
+def _collect_strings(blocks):
+    """Flatten every string field across a Block list."""
+    out = []
+    for b in blocks:
+        for v in b.__dict__.values():
+            if isinstance(v, str):
+                out.append(v)
+            elif isinstance(v, (tuple, list)):
+                out.extend(item for item in v if isinstance(item, str))
+    return "\n".join(out)
+
+
+def test_cover_letter_phone_email_only_at_bottom_no_duplication():
+    """Phone/email after signature must not appear in BOTH header and ClosingBlock."""
+    text = """JANE DOE
+Toronto, ON M5V 1A1
+
+January 22, 2026
+
+Dear Hiring Manager,
+
+Body text for the cover letter goes here in this paragraph form.
+
+Sincerely,
+
+Jane Doe
+(555) 123-4567
+jane@example.com
+"""
+    blocks = parse_markdown_like(text, is_cover_letter=True)
+    combined = _collect_strings(blocks)
+    assert combined.count("(555) 123-4567") == 1
+    assert combined.count("jane@example.com") == 1
+
+    # Closing block fields must be blank (the values live in the contact header).
+    closings = [b for b in blocks if isinstance(b, ClosingBlock)]
+    assert len(closings) == 1
+    assert closings[0].phone == ""
+    assert closings[0].email == ""
+
+
+def test_cover_letter_phone_email_at_top_unchanged():
+    """Phone/email under the name must not produce spurious ClosingBlock fields."""
+    text = """JANE DOE
+jane@example.com | (555) 123-4567
+
+January 22, 2026
+
+Dear Hiring Manager,
+
+Body text.
+
+Sincerely,
+
+Jane Doe
+"""
+    blocks = parse_markdown_like(text, is_cover_letter=True)
+    closings = [b for b in blocks if isinstance(b, ClosingBlock)]
+    assert len(closings) == 1
+    assert closings[0].phone == ""
+    assert closings[0].email == ""

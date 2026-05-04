@@ -7,15 +7,8 @@ Push-Location $PSScriptRoot\..
 Write-Host "==> Syncing dependencies (includes dev group by default)"
 uv sync
 
-Write-Host "==> Building EXE via PyInstaller"
-uv run pyinstaller `
-    --noconfirm `
-    --clean `
-    --onefile `
-    --name mb2docx-gui `
-    --noconsole `
-    --add-data "src/mb2docx;mb2docx" `
-    launcher.py
+Write-Host "==> Building EXE via PyInstaller (using mb2docx-gui.spec)"
+uv run pyinstaller --noconfirm --clean mb2docx-gui.spec
 
 Write-Host "==> Done. Output in .\dist\mb2docx-gui.exe"
 

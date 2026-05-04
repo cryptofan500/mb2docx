@@ -13,12 +13,13 @@ Bob_Frok_CV.docx and Bob_Frok_CL.docx exemplars:
 """
 from __future__ import annotations
 
+import contextlib
 import logging
 import re
 import tempfile
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Optional
 
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT
@@ -79,7 +80,7 @@ def _apply_base_style(doc: Document, cfg: DocxStyleConfig) -> None:
 
 def _add_run(paragraph, text: str, cfg: DocxStyleConfig,
              bold: bool = False, italic: bool = False,
-             size_pt: Optional[int] = None) -> None:
+             size_pt: int | None = None) -> None:
     """Add a text run with explicit font settings.
 
     CRITICAL: Only set bold=True or italic=True, NEVER explicitly set False.
@@ -94,7 +95,7 @@ def _add_run(paragraph, text: str, cfg: DocxStyleConfig,
         run.italic = True
 
 
-def _parse_bold_markup(text: str) -> List[tuple]:
+def _parse_bold_markup(text: str) -> list[tuple]:
     """Parse **bold** markup into (text, is_bold) tuples."""
     parts = []
     pattern = r'\*\*(.+?)\*\*'
@@ -218,9 +219,7 @@ def _add_list(doc: Document, blk: ListBlock, cfg: DocxStyleConfig,
 
         is_last = (idx == num_items - 1)
 
-        if is_last and is_last_before_section:
-            p.paragraph_format.space_after = Pt(cfg.space_after_last_bullet_pt)
-        elif is_last:
+        if is_last and is_last_before_section or is_last:
             p.paragraph_format.space_after = Pt(cfg.space_after_last_bullet_pt)
         else:
             p.paragraph_format.space_after = Pt(cfg.space_after_bullet_pt)
@@ -322,8 +321,8 @@ def render_blocks(doc: Document, blocks: Iterable[Block], cfg: DocxStyleConfig) 
             log.warning("Unknown block type: %s", type(blk))
 
 
-def new_document(*, cfg: DocxStyleConfig, title: Optional[str] = None,
-                 author: Optional[str] = None) -> Document:
+def new_document(*, cfg: DocxStyleConfig, title: str | None = None,
+                 author: str | None = None) -> Document:
     """Create a new document with base styling."""
     doc = Document()
     _apply_page_setup(doc, cfg)
@@ -338,7 +337,7 @@ def new_document(*, cfg: DocxStyleConfig, title: Optional[str] = None,
 
 
 def write_document(blocks: Iterable[Block], output_path: Path,
-                   cfg: DocxStyleConfig, author: Optional[str] = None) -> WriteResult:
+                   cfg: DocxStyleConfig, author: str | None = None) -> WriteResult:
     """Write blocks to a DOCX file."""
     doc = new_document(cfg=cfg, author=author)
     render_blocks(doc, blocks, cfg)
@@ -349,7 +348,7 @@ def write_document(blocks: Iterable[Block], output_path: Path,
 
 
 def build_docx(blocks: Iterable[Block], *, cfg: DocxStyleConfig,
-               title: Optional[str] = None, author: Optional[str] = None) -> Document:
+               title: str | None = None, author: str | None = None) -> Document:
     """Build a complete document from blocks."""
     doc = new_document(cfg=cfg, title=title, author=author)
     render_blocks(doc, blocks, cfg)
@@ -387,10 +386,8 @@ def safe_save_docx(doc: Document, out_path: Path) -> WriteResult:
                 ) from e
     finally:
         if tmp_path.exists():
-            try:
+            with contextlib.suppress(OSError):
                 tmp_path.unlink()
-            except OSError:
-                pass
 
 
 def add_page_break(doc: Document) -> None:

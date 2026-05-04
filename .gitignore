@@ -39,6 +39,9 @@ env/
 build/
 dist/
 *.spec
+# ...except the tracked PyInstaller specs used by build_exe.bat / build_exe_debug.bat
+!mb2docx-gui.spec
+!mb2docx-gui-debug.spec
 *.exe
 *.dll
 *.pyd

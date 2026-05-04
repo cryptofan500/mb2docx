@@ -1,6 +1,7 @@
 """Tests specifically for Grok/Plain text formats."""
+from mb2docx.model import ContactBlock, InstitutionBlock, JobEntryBlock, SectionHeadingBlock
 from mb2docx.parser import parse_markdown_like
-from mb2docx.model import JobEntryBlock, InstitutionBlock, SectionHeadingBlock, ContactBlock
+
 
 def test_grok_split_lines_job():
     """Test Title on line 1, Date on line 2."""
