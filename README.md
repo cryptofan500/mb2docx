@@ -59,7 +59,9 @@ uv run python -m mb2docx.gui
 ```powershell
 dist\mb2docx-gui.exe
 ```
-(Build with: `build_exe.bat` or `uv run python -m PyInstaller --onefile --windowed --name mb2docx-gui --add-data src/mb2docx;mb2docx launcher.py`)
+Build with `build_exe.bat` (release, no console window) or `build_exe_debug.bat`
+(includes a console for troubleshooting). Both scripts call PyInstaller against
+the tracked spec files `mb2docx-gui.spec` and `mb2docx-gui-debug.spec`.
 
 ### CLI Usage
 ```powershell
