@@ -109,8 +109,8 @@ uv run pytest tests/ -v
 # Type checking
 uv run mypy src/
 
-# Linting
-uv run ruff check src/
+# Linting (run on the same paths as CI)
+uv run ruff check src/ tests/
 ```
 
 ## Author

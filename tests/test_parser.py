@@ -1,5 +1,4 @@
 """Tests for parser.py."""
-from mb2docx.parser import parse_markdown_like
 from mb2docx.model import (
     AddressBlock,
     ClosingBlock,
@@ -9,10 +8,10 @@ from mb2docx.model import (
     InstitutionBlock,
     JobEntryBlock,
     ListBlock,
-    ParagraphBlock,
     SalutationBlock,
     SectionHeadingBlock,
 )
+from mb2docx.parser import parse_markdown_like
 
 
 def test_parser_name_heading():

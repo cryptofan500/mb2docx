@@ -4,10 +4,9 @@ from __future__ import annotations
 import argparse
 import logging
 from pathlib import Path
-from typing import Optional
 
 from . import __version__
-from .config import CV_STYLE, CL_STYLE, OutputConfig, default_output_dir, load_saved_author
+from .config import CL_STYLE, CV_STYLE, OutputConfig, default_output_dir, load_saved_author
 from .logging_utils import configure_logging
 from .pipeline import generate_documents
 
@@ -43,7 +42,7 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 

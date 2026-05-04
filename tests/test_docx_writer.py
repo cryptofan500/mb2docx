@@ -85,7 +85,7 @@ def test_job_entry_pipe_separator_title_bold_date_not_bold():
     # comes back as None; the contract is "not truthy".
     assert not date_run.bold
     # Sanity: full text contains the pipe separator.
-    assert "Senior Manager | January 2020 - Present" == p.text
+    assert p.text == "Senior Manager | January 2020 - Present"
 
 
 def test_cv_bullet_has_hanging_indent():

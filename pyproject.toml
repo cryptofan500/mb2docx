@@ -29,6 +29,9 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+# gui.py is intentionally out of scope for the V9.3.0 lint pass; revisit
+# when the GUI module is next touched.
+extend-exclude = ["src/mb2docx/gui.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]

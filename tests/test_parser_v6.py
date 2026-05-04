@@ -1,10 +1,12 @@
 """V6 Parser Tests - Verify smart detection works."""
-import pytest
-from mb2docx.parser import parse_markdown_like
 from mb2docx.model import (
-    HeadingBlock, ContactBlock, SectionHeadingBlock,
-    JobEntryBlock, InstitutionBlock, ListBlock, ParagraphBlock
+    ContactBlock,
+    HeadingBlock,
+    InstitutionBlock,
+    JobEntryBlock,
+    SectionHeadingBlock,
 )
+from mb2docx.parser import parse_markdown_like
 
 
 def test_name_detection_all_caps():

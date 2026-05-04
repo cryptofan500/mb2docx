@@ -8,12 +8,20 @@ Major upgrades:
 from __future__ import annotations
 
 import re
-from typing import List, Optional, Tuple
 
 from .model import (
-    AddressBlock, Block, ClosingBlock, ContactBlock, DateLineBlock,
-    HeadingBlock, InstitutionBlock, JobEntryBlock, ListBlock,
-    ParagraphBlock, SalutationBlock, SectionHeadingBlock
+    AddressBlock,
+    Block,
+    ClosingBlock,
+    ContactBlock,
+    DateLineBlock,
+    HeadingBlock,
+    InstitutionBlock,
+    JobEntryBlock,
+    ListBlock,
+    ParagraphBlock,
+    SalutationBlock,
+    SectionHeadingBlock,
 )
 
 # ============================================================================
@@ -77,9 +85,7 @@ def _looks_like_name(line: str) -> bool:
     if line.isupper() and len(line) < 50:
         return True
     # Title Case name
-    if all(w[0].isupper() for w in words if w):
-        return True
-    return False
+    return all(w[0].isupper() for w in words if w)
 
 def _looks_like_contact(line: str) -> bool:
     if "@" in line or "|" in line:
@@ -87,9 +93,7 @@ def _looks_like_contact(line: str) -> bool:
     if _PHONE_RE.search(line) and len(line) < 100:
         return True
     # LinkedIn URL
-    if "linkedin.com" in line.lower():
-        return True
-    return False
+    return "linkedin.com" in line.lower()
 
 
 def _looks_like_address_or_contact(line: str) -> bool:
@@ -125,17 +129,14 @@ def _looks_like_section_heading(line: str) -> bool:
         return True
 
     # Case 2: Title Case with Keyword (e.g. Professional Experience)
-    lower_words = set(w.lower() for w in words)
+    lower_words = {w.lower() for w in words}
     # Check if any word is a keyword
     if not lower_words.intersection(SECTION_KEYWORDS):
         return False
     # Check if it looks like a header (Title Case)
-    if all(w[0].isupper() for w in words if w[0].isalpha()):
-        return True
+    return all(w[0].isupper() for w in words if w[0].isalpha())
 
-    return False
-
-def _extract_date_range(line: str) -> Optional[str]:
+def _extract_date_range(line: str) -> str | None:
     """Return just the date range string if found, else None."""
     match = _DATE_RANGE_RE.search(line)
     if match:
@@ -145,7 +146,7 @@ def _extract_date_range(line: str) -> Optional[str]:
         return match_single.group(0).strip()
     return None
 
-def _split_line_title_date(line: str) -> Tuple[str, Optional[str]]:
+def _split_line_title_date(line: str) -> tuple[str, str | None]:
     """Split 'Title Date' into parts."""
     # Check if date is at the end
     match = _DATE_RANGE_RE.search(line) or _SINGLE_DATE_RE.search(line)
@@ -153,11 +154,11 @@ def _split_line_title_date(line: str) -> Tuple[str, Optional[str]]:
         date_str = match.group(0)
         title_part = line[:match.start()].strip()
         # Clean trailing separators
-        title_part = re.sub(r'[\t\s,–—-]+$', '', title_part)
+        title_part = re.sub(r'[\s,–—-]+$', '', title_part)
         return (title_part, date_str)
     return (line, None)
 
-def _parse_job_title_line(line: str) -> Tuple[str, Optional[str]]:
+def _parse_job_title_line(line: str) -> tuple[str, str | None]:
     """Handle 'Title, Company, Location' format.
 
     Returns (Job Title, Institution string).
@@ -190,15 +191,15 @@ def _parse_job_title_line(line: str) -> Tuple[str, Optional[str]]:
 # MAIN PARSER
 # ============================================================================
 
-def parse_markdown_like(text: str, is_cover_letter: bool = False) -> List[Block]:
+def parse_markdown_like(text: str, is_cover_letter: bool = False) -> list[Block]:
     if is_cover_letter:
         return _parse_cover_letter(text)
     return _parse_cv(text)
 
-def _parse_cv(text: str) -> List[Block]:
-    blocks: List[Block] = []
+def _parse_cv(text: str) -> list[Block]:
+    blocks: list[Block] = []
     lines = text.split("\n")
-    para_buf: List[str] = []
+    para_buf: list[str] = []
 
     seen_name = False
     seen_contact = False
@@ -278,67 +279,65 @@ def _parse_cv(text: str) -> List[Block]:
         # ---------------------------------------------------------
         # 3. CONTACT INFO (Multi-line address + contact merged into one)
         # ---------------------------------------------------------
-        if seen_name and not seen_contact:
-            # If current line is address or contact-like, gather all header lines
-            if _looks_like_address_or_contact(line):
-                flush_para()
+        if seen_name and not seen_contact and _looks_like_address_or_contact(line):
+            flush_para()
 
-                # V9.2 FIX: If line already has pipe separators, preserve exactly as-is
-                if '|' in line:
-                    blocks.append(ContactBlock(type="contact_header", text=line))
-                    seen_contact = True
+            # V9.2 FIX: If line already has pipe separators, preserve exactly as-is
+            if '|' in line:
+                blocks.append(ContactBlock(type="contact_header", text=line))
+                seen_contact = True
+                i += 1
+                continue
+
+            # Otherwise gather multi-line header info until section heading
+            contact_lines = [line]
+            i += 1
+            while i < len(lines):
+                next_ln = lines[i].strip()
+                if not next_ln:
                     i += 1
                     continue
+                if _looks_like_section_heading(next_ln):
+                    break
+                if _HEADING_RE.match(next_ln):
+                    break
+                # Gather address/contact lines (short lines, or contact-like)
+                if _looks_like_address_or_contact(next_ln) or (len(next_ln) < 50 and not next_ln.startswith(('-', '*', '•'))):
+                    contact_lines.append(next_ln)
+                    i += 1
+                else:
+                    break
 
-                # Otherwise gather multi-line header info until section heading
-                contact_lines = [line]
-                i += 1
-                while i < len(lines):
-                    next_ln = lines[i].strip()
-                    if not next_ln:
-                        i += 1
-                        continue
-                    if _looks_like_section_heading(next_ln):
-                        break
-                    if _HEADING_RE.match(next_ln):
-                        break
-                    # Gather address/contact lines (short lines, or contact-like)
-                    if _looks_like_address_or_contact(next_ln) or (len(next_ln) < 50 and not next_ln.startswith(('-', '*', '•'))):
-                        contact_lines.append(next_ln)
-                        i += 1
-                    else:
-                        break
+            # Merge multi-line contacts with smart separators
+            # Address parts use ", " while contact items use " | "
+            address_parts = []
+            contact_parts = []
 
-                # Merge multi-line contacts with smart separators
-                # Address parts use ", " while contact items use " | "
-                address_parts = []
-                contact_parts = []
+            for cl in contact_lines:
+                # Determine if this is address or contact info
+                is_contact = (
+                    '@' in cl or
+                    _PHONE_RE.search(cl) or
+                    'linkedin' in cl.lower() or
+                    '|' in cl  # Already pipe-separated
+                )
+                if is_contact:
+                    contact_parts.append(cl)
+                else:
+                    address_parts.append(cl)
 
-                for cl in contact_lines:
-                    # Determine if this is address or contact info
-                    is_contact = (
-                        '@' in cl or
-                        _PHONE_RE.search(cl) or
-                        'linkedin' in cl.lower() or
-                        '|' in cl  # Already pipe-separated
-                    )
-                    if is_contact:
-                        contact_parts.append(cl)
-                    else:
-                        address_parts.append(cl)
+            # Build final contact line
+            parts_to_join = []
+            if address_parts:
+                # Join address parts with comma
+                parts_to_join.append(", ".join(address_parts))
+            # Add contact parts with pipes
+            parts_to_join.extend(contact_parts)
 
-                # Build final contact line
-                parts_to_join = []
-                if address_parts:
-                    # Join address parts with comma
-                    parts_to_join.append(", ".join(address_parts))
-                # Add contact parts with pipes
-                parts_to_join.extend(contact_parts)
-
-                full_contact = " | ".join(parts_to_join)
-                blocks.append(ContactBlock(type="contact_header", text=full_contact))
-                seen_contact = True
-                continue
+            full_contact = " | ".join(parts_to_join)
+            blocks.append(ContactBlock(type="contact_header", text=full_contact))
+            seen_contact = True
+            continue
 
         # ---------------------------------------------------------
         # 4. SECTION HEADING (Title Case or ALL CAPS)
@@ -430,7 +429,7 @@ def _parse_cv(text: str) -> List[Block]:
     flush_para()
     return blocks
 
-def _parse_cover_letter(text: str) -> List[Block]:
+def _parse_cover_letter(text: str) -> list[Block]:
     """Parser for Cover Letter with proper header handling.
 
     V9.1 Fix: Now correctly detects name and contact at the top
@@ -511,67 +510,69 @@ def _parse_cover_letter(text: str) -> List[Block]:
 
         # ===== V9.1 FIX: CONTACT DETECTION =====
         # After name, before date, gather contact/address lines
-        if seen_name and not seen_contact and not seen_date:
-            if _looks_like_contact(line) or _looks_like_address_or_contact(line):
-                flush()
-                # Gather all contact/address lines until date or salutation
-                contact_lines = [line]
-                i += 1
-                while i < len(lines):
-                    next_ln = lines[i].strip()
-                    if not next_ln:
-                        i += 1
-                        continue
-                    # Stop if we hit the date
-                    if _DATE_ONLY_RE.match(next_ln):
-                        break
-                    # Stop if we hit salutation
-                    if _SALUTATION_RE.match(next_ln):
-                        break
-                    # Gather contact-like or short address-like lines
-                    if _looks_like_contact(next_ln) or _looks_like_address_or_contact(next_ln):
-                        contact_lines.append(next_ln)
-                        i += 1
-                    elif len(next_ln) < 50 and not next_ln.startswith(('-', '*', '•')):
-                        # Short lines might be part of address
-                        contact_lines.append(next_ln)
-                        i += 1
-                    else:
-                        break
+        if (
+            seen_name and not seen_contact and not seen_date
+            and (_looks_like_contact(line) or _looks_like_address_or_contact(line))
+        ):
+            flush()
+            # Gather all contact/address lines until date or salutation
+            contact_lines = [line]
+            i += 1
+            while i < len(lines):
+                next_ln = lines[i].strip()
+                if not next_ln:
+                    i += 1
+                    continue
+                # Stop if we hit the date
+                if _DATE_ONLY_RE.match(next_ln):
+                    break
+                # Stop if we hit salutation
+                if _SALUTATION_RE.match(next_ln):
+                    break
+                # Gather contact-like or short address-like lines
+                if _looks_like_contact(next_ln) or _looks_like_address_or_contact(next_ln):
+                    contact_lines.append(next_ln)
+                    i += 1
+                elif len(next_ln) < 50 and not next_ln.startswith(('-', '*', '•')):
+                    # Short lines might be part of address
+                    contact_lines.append(next_ln)
+                    i += 1
+                else:
+                    break
 
-                # Merge with smart separators (like CV parser does)
-                address_parts = []
-                contact_parts = []
+            # Merge with smart separators (like CV parser does)
+            address_parts = []
+            contact_parts = []
 
-                for cl in contact_lines:
-                    is_contact = (
-                        '@' in cl or
-                        _PHONE_RE.search(cl) or
-                        'linkedin' in cl.lower() or
-                        '|' in cl
-                    )
-                    if is_contact:
-                        contact_parts.append(cl)
-                    else:
-                        address_parts.append(cl)
+            for cl in contact_lines:
+                is_contact = (
+                    '@' in cl or
+                    _PHONE_RE.search(cl) or
+                    'linkedin' in cl.lower() or
+                    '|' in cl
+                )
+                if is_contact:
+                    contact_parts.append(cl)
+                else:
+                    address_parts.append(cl)
 
-                parts_to_join = []
-                if address_parts:
-                    parts_to_join.append(", ".join(address_parts))
-                parts_to_join.extend(contact_parts)
+            parts_to_join = []
+            if address_parts:
+                parts_to_join.append(", ".join(address_parts))
+            parts_to_join.extend(contact_parts)
 
-                # Add footer phone/email to header (found during pre-scan)
-                if footer_phone and footer_phone not in " ".join(parts_to_join):
-                    parts_to_join.append(footer_phone)
-                    promoted_phone = True
-                if footer_email and footer_email not in " ".join(parts_to_join):
-                    parts_to_join.append(footer_email)
-                    promoted_email = True
+            # Add footer phone/email to header (found during pre-scan)
+            if footer_phone and footer_phone not in " ".join(parts_to_join):
+                parts_to_join.append(footer_phone)
+                promoted_phone = True
+            if footer_email and footer_email not in " ".join(parts_to_join):
+                parts_to_join.append(footer_email)
+                promoted_email = True
 
-                full_contact = " | ".join(parts_to_join)
-                blocks.append(ContactBlock(type="contact_header", text=full_contact))
-                seen_contact = True
-                continue
+            full_contact = " | ".join(parts_to_join)
+            blocks.append(ContactBlock(type="contact_header", text=full_contact))
+            seen_contact = True
+            continue
         # ===== END V9.1 FIX =====
 
         # Date

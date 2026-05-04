@@ -7,9 +7,9 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Literal
+from typing import Literal
 
 
 @dataclass
@@ -119,7 +119,7 @@ def _get_config_path() -> Path:
     return config_dir / 'settings.json'
 
 
-def load_saved_author() -> Optional[str]:
+def load_saved_author() -> str | None:
     """Load saved author name from config."""
     try:
         config_path = _get_config_path()
@@ -144,7 +144,7 @@ def save_author(name: str) -> None:
         pass
 
 
-def load_saved_output_dir() -> Optional[str]:
+def load_saved_output_dir() -> str | None:
     """Load saved output directory from config."""
     try:
         config_path = _get_config_path()
