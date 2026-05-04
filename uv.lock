@@ -252,7 +252,7 @@ wheels = [
 
 [[package]]
 name = "mb2docx"
-version = "9.2.0"
+version = "9.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "python-docx" },
