@@ -468,6 +468,10 @@ def _parse_cover_letter(text: str) -> List[Block]:
     seen_date = False
     in_address = False
     address_buf = []
+    # V9.3.0: track whether footer phone/email were promoted into the header
+    # so we can blank them on the eventual ClosingBlock and avoid duplication.
+    promoted_phone = False
+    promoted_email = False
 
     def flush():
         nonlocal para_buf
@@ -559,8 +563,10 @@ def _parse_cover_letter(text: str) -> List[Block]:
                 # Add footer phone/email to header (found during pre-scan)
                 if footer_phone and footer_phone not in " ".join(parts_to_join):
                     parts_to_join.append(footer_phone)
+                    promoted_phone = True
                 if footer_email and footer_email not in " ".join(parts_to_join):
                     parts_to_join.append(footer_email)
+                    promoted_email = True
 
                 full_contact = " | ".join(parts_to_join)
                 blocks.append(ContactBlock(type="contact_header", text=full_contact))
@@ -632,6 +638,12 @@ def _parse_cover_letter(text: str) -> List[Block]:
                 break
 
             i = j - 1  # Position before the increment
+            # V9.3.0: if these values were already promoted to the header
+            # contact line, blank them here so they aren't rendered twice.
+            if promoted_phone:
+                phone = ""
+            if promoted_email:
+                email = ""
             blocks.append(ClosingBlock(type="closing", closing=line, signature=sig, phone=phone, email=email))
             i += 1
             continue
